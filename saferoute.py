@@ -30,6 +30,43 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return R * c
 
+def load_shelters(path="shelters.json"):
+    with open(path, "r") as f:
+        return json.load(f)
+import json
+import requests
+from math import radians, sin, cos, sqrt, atan2
+
+ORS_API_KEY = "YOUR_API_KEY"
+
+def haversine_distance(lat1, lon1, lat2, lon2):
+    ...
+
+def load_shelters(path="shelters.json"):
+    ...
+
+def count_exposed_segments(route, shelters, threshold_meters=1000):
+    """
+    Counts how many route points are farther than `threshold_meters` from the nearest shelter.
+    """
+    exposed = 0
+    for point in route:
+        lon, lat = point
+        min_distance = float("inf")
+        for shelter in shelters:
+            dist = haversine_distance(lat, lon, shelter["lat"], shelter["lon"])
+            if dist < min_distance:
+                min_distance = dist
+        if min_distance > threshold_meters:
+            exposed += 1
+    return exposed
+
+def fetch_route(start_coords, end_coords):
+    ...
+    
+def assess_risk(start_location, end_location, travel_time):
+    ...
+
 def assess_risk(start_location, end_location, travel_time):
     """
     Core function for route risk assessment.
