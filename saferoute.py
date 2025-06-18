@@ -1,57 +1,46 @@
-# SafeRoute AI - MVP Travel Risk Agent
-# Author: Yoav A.
-# Version: 0.1
+"""SafeRoute AI - MVP Travel Risk Agent.
+This script provides simple routing risk assessment using open-source
+APIs. It fetches a driving route, evaluates how much of the route is far
+from bomb shelters, and returns a basic risk score.
+"""
 
-"""
-This script will:
-1. Accept origin, destination, and travel time
-2. Use a routing service to calculate the route
-3. Analyze exposure to risk (e.g., distance from bomb shelters)
-4. Return a natural-language safety summary
-"""
+import json
+from math import atan2, cos, radians, sin, sqrt
+from typing import Iterable, List, Sequence, Union
+
 import requests
 
-# Replace this with your actual ORS API key
-ORS_API_KEY = "5b3ce3597851110001cf624856f5924055544c8faabb05aec29d7ac0"
+# Replace with your actual OpenRouteService API key if available
+ORS_API_KEY = "YOUR_API_KEY"
 
-from math import radians, sin, cos, sqrt, atan2
 
-def haversine_distance(lat1, lon1, lat2, lon2):
-    """
-    Calculates distance in meters between two lat/lon points.
-    """
-    R = 6371000  # Earth radius in meters
+def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Return distance in meters between two lat/lon coordinates."""
+    r = 6371000  # Earth radius in meters
     phi1 = radians(lat1)
     phi2 = radians(lat2)
     d_phi = radians(lat2 - lat1)
     d_lambda = radians(lon2 - lon1)
 
-    a = sin(d_phi/2)**2 + cos(phi1) * cos(phi2) * sin(d_lambda/2)**2
+    a = sin(d_phi / 2) ** 2 + cos(phi1) * cos(phi2) * sin(d_lambda / 2) ** 2
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    return R * c
+    return r * c
 
-def load_shelters(path="shelters.json"):
-    with open(path, "r") as f:
-        return json.load(f)
-import json
-import requests
-from math import radians, sin, cos, sqrt, atan2
 
-ORS_API_KEY = "YOUR_API_KEY"
+def load_shelters(path: str = "shelters.json") -> List[dict]:
+    """Load shelter metadata from ``path``."""
+    with open(path, "r") as fh:
+        return json.load(fh)
 
-def haversine_distance(lat1, lon1, lat2, lon2):
-    ...
 
-def load_shelters(path="shelters.json"):
-    ...
-
-def count_exposed_segments(route, shelters, threshold_meters=1000):
-    """
-    Counts how many route points are farther than `threshold_meters` from the nearest shelter.
-    """
+def count_exposed_segments(
+    route: Iterable[Sequence[float]],
+    shelters: Iterable[dict],
+    threshold_meters: float = 1000,
+) -> int:
+    """Return number of route points farther than ``threshold_meters`` from a shelter."""
     exposed = 0
-    for point in route:
-        lon, lat = point
+    for lon, lat in route:
         min_distance = float("inf")
         for shelter in shelters:
             dist = haversine_distance(lat, lon, shelter["lat"], shelter["lon"])
@@ -61,55 +50,75 @@ def count_exposed_segments(route, shelters, threshold_meters=1000):
             exposed += 1
     return exposed
 
-def fetch_route(start_coords, end_coords):
-    ...
-    
-def assess_risk(start_location, end_location, travel_time):
-    ...
 
-def assess_risk(start_location, end_location, travel_time):
-    """
-    Core function for route risk assessment.
-    For now, this is a placeholder that returns mock risk levels.
-    """
-    print(f"Starting location: {start_location}")
-    print(f"Destination: {end_location}")
-    print(f"Travel time: {travel_time}")
-
-    # TODO: Add route lookup
-    # TODO: Add shelter proximity logic
-    # TODO: Add risk scoring
-
-    return {
-        "risk_level": "MODERATE",
-        "details": "Between Be'er Sheva and Mitzpe Ramon, there is a 40km stretch with no shelter access."
-    }
-def fetch_route(start_coords, end_coords):
-    """
-    Fetch driving route from OpenRouteService.
-    Input: [lon, lat] for start and end
-    Returns: list of [lon, lat] coordinates along the route
-    """
+def fetch_route(start_coords: Sequence[float], end_coords: Sequence[float]) -> List[List[float]]:
+    """Fetch a driving route from OpenRouteService and return ``[lon, lat]`` points."""
     url = "https://api.openrouteservice.org/v2/directions/driving-car"
-    headers = {
-        "Authorization": ORS_API_KEY,
-        "Content-Type": "application/json"
-    }
-    body = {
-        "coordinates": [start_coords, end_coords]
-    }
+    headers = {"Authorization": ORS_API_KEY, "Content-Type": "application/json"}
+    body = {"coordinates": [start_coords, end_coords]}
 
-    response = requests.post(url, json=body, headers=headers)
-    if response.status_code == 200:
-        data = response.json()
+    resp = requests.post(url, json=body, headers=headers)
+    if resp.status_code == 200:
+        data = resp.json()
         return data["features"][0]["geometry"]["coordinates"]
-    else:
-        print("Route fetch failed:", response.status_code, response.text)
-        return []
+    print("Route fetch failed:", resp.status_code, resp.text)
+    return []
 
-# Example test
+
+def geocode_location(location: str) -> List[float]:
+    """Return ``[lon, lat]`` coordinates for a location name using Nominatim."""
+    url = "https://nominatim.openstreetmap.org/search"
+    params = {"q": location, "format": "json", "limit": 1}
+    resp = requests.get(url, params=params, headers={"User-Agent": "saferoute-ai"})
+    if resp.status_code == 200 and resp.json():
+        info = resp.json()[0]
+        return [float(info["lon"]), float(info["lat"])]
+    raise ValueError(f"Could not geocode location: {location}")
+
+
+def _coords(loc: Union[str, Sequence[float]]) -> List[float]:
+    if isinstance(loc, str):
+        return geocode_location(loc)
+    if isinstance(loc, (list, tuple)) and len(loc) == 2:
+        return [float(loc[0]), float(loc[1])]
+    raise TypeError("Location must be a name or coordinate pair")
+
+
+def assess_risk(
+    start_location: Union[str, Sequence[float]],
+    end_location: Union[str, Sequence[float]],
+    travel_time: str,
+    threshold_meters: float = 1000,
+) -> dict:
+    """Return a basic risk assessment for traveling between two locations."""
+    start_coords = _coords(start_location)
+    end_coords = _coords(end_location)
+
+    route = fetch_route(start_coords, end_coords)
+    shelters = load_shelters()
+
+    if not route:
+        return {"risk_level": "UNKNOWN", "details": "Route retrieval failed."}
+
+    exposed = count_exposed_segments(route, shelters, threshold_meters)
+    total = len(route)
+    ratio = exposed / total if total else 0
+
+    if ratio < 0.2:
+        risk = "LOW"
+    elif ratio < 0.5:
+        risk = "MODERATE"
+    else:
+        risk = "HIGH"
+
+    details = (
+        f"{exposed} of {total} route points are beyond {threshold_meters}m from a shelter "
+        f"({ratio:.1%} exposed)."
+    )
+    return {"risk_level": risk, "details": details}
+
+
 if __name__ == "__main__":
-    # Test route from Tel Aviv to Mitzpe Ramon
     route = fetch_route([34.7818, 32.0853], [34.8016, 30.6072])
     print(f"Route contains {len(route)} segments.")
 
