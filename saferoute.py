@@ -10,9 +10,9 @@ This script will:
 4. Return a natural-language safety summary
 """
 import requests
+import os
 
-# Replace this with your actual ORS API key
-ORS_API_KEY = "5b3ce3597851110001cf624856f5924055544c8faabb05aec29d7ac0"
+ORS_API_KEY = os.getenv("ORS_API_KEY")
 
 from math import radians, sin, cos, sqrt, atan2
 
@@ -36,8 +36,6 @@ def load_shelters(path="shelters.json"):
 import json
 import requests
 from math import radians, sin, cos, sqrt, atan2
-
-ORS_API_KEY = "YOUR_API_KEY"
 
 def haversine_distance(lat1, lon1, lat2, lon2):
     ...
