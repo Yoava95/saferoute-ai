@@ -12,8 +12,10 @@ This script will:
 
 import os
 import json
-import requests
+from datetime import datetime
 from math import radians, sin, cos, sqrt, atan2
+
+import requests
 
 ORS_API_KEY = os.getenv("ORS_API_KEY")
 
@@ -35,6 +37,29 @@ def load_shelters(path="shelters.json"):
     """Load shelter locations from a JSON file."""
     with open(path, "r") as f:
         return json.load(f)
+
+
+def load_missile_hits(path="missile_hits.json"):
+    """Load recorded missile hit locations."""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return []
+
+
+def count_recent_hits(route, hits, threshold_meters=5000, days=30):
+    """Count hits within `threshold_meters` of the route in the last `days`."""
+    now = datetime.utcnow()
+    recent_hits = [h for h in hits if (now - datetime.fromisoformat(h["datetime"])).days <= days]
+    count = 0
+    for hit in recent_hits:
+        for lon, lat in route:
+            dist = haversine_distance(lat, lon, hit["lat"], hit["lon"])
+            if dist <= threshold_meters:
+                count += 1
+                break
+    return count
 
 
 def count_exposed_segments(route, shelters, threshold_meters=1000):
@@ -73,11 +98,14 @@ def assess_risk(start_coords, end_coords, travel_time):
     """Assess risk along a route between two coordinate pairs."""
     route = fetch_route(start_coords, end_coords)
     shelters = load_shelters()
-    exposed = count_exposed_segments(route, shelters)
+    hits = load_missile_hits()
 
-    if exposed > 20:
+    exposed = count_exposed_segments(route, shelters)
+    nearby_hits = count_recent_hits(route, hits)
+
+    if exposed > 20 or nearby_hits > 5:
         risk = "HIGH"
-    elif exposed > 10:
+    elif exposed > 10 or nearby_hits > 0:
         risk = "MODERATE"
     else:
         risk = "LOW"
@@ -85,6 +113,7 @@ def assess_risk(start_coords, end_coords, travel_time):
     return {
         "risk_level": risk,
         "exposed_segments": exposed,
+        "nearby_hits": nearby_hits,
     }
 
 
