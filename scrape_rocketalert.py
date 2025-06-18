@@ -51,7 +51,6 @@ def _normalize_alerts(data: List[Dict]) -> List[Dict[str, str]]:
         })
     return alerts
 
-
 def fetch_alerts_for_date(date: datetime) -> List[Dict[str, str]]:
     """Fetch alerts for a specific date using the history endpoint."""
     url = HISTORY_URL.format(date=date.strftime("%Y-%m-%d"))
@@ -78,7 +77,6 @@ def fetch_historical_alerts(start: datetime) -> List[Dict[str, str]]:
         alerts.extend(fetch_alerts_for_date(datetime.combine(current, datetime.min.time())))
         current += timedelta(days=1)
     return alerts
-
 
 def fetch_latest_alerts() -> List[Dict[str, str]]:
     """Fetch latest alerts from rocketalert.live."""
@@ -141,7 +139,6 @@ def bootstrap_history(start: datetime) -> None:
     history = fetch_historical_alerts(start)
     if history:
         update_dataset(history)
-
 
 def run_scraper():
     alerts = fetch_latest_alerts()
