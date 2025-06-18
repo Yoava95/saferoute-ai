@@ -1,3 +1,7 @@
+def load_shelters(path="shelters.json"):
+    with open(path, "r") as f:
+        return json.load(f)
+
 [
   { "name": "Shelter 1", "lat": 31.7683, "lon": 35.2137 },
   { "name": "Shelter 2", "lat": 30.6072, "lon": 34.8016 },
