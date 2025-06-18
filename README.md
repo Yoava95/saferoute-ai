@@ -10,7 +10,7 @@ export ORS_API_KEY=your_api_key
 python saferoute.py
 ```
 
-## Missile Hit Scraper
+## Rocket Alert Scraper
 
 `scrape_rocketalert.py` collects rocket alert reports from
 [rocketalert.live](https://rocketalert.live/). On first run it downloads all
