@@ -14,6 +14,22 @@ import requests
 # Replace this with your actual ORS API key
 ORS_API_KEY = "5b3ce3597851110001cf624856f5924055544c8faabb05aec29d7ac0"
 
+from math import radians, sin, cos, sqrt, atan2
+
+def haversine_distance(lat1, lon1, lat2, lon2):
+    """
+    Calculates distance in meters between two lat/lon points.
+    """
+    R = 6371000  # Earth radius in meters
+    phi1 = radians(lat1)
+    phi2 = radians(lat2)
+    d_phi = radians(lat2 - lat1)
+    d_lambda = radians(lon2 - lon1)
+
+    a = sin(d_phi/2)**2 + cos(phi1) * cos(phi2) * sin(d_lambda/2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return R * c
+
 def assess_risk(start_location, end_location, travel_time):
     """
     Core function for route risk assessment.
