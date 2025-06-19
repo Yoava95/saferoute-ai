@@ -12,10 +12,11 @@ python saferoute.py
 
 ## Missile Hit Scraper
 
-`scrape_rocketalert.py` collects recent rocket alert reports from
+`scrape_rocketalert.py` collects rocket alert reports from
 [rocketalert.live](https://rocketalert.live/). The dataset is stored in
-`missile_hits.json` and is automatically updated every 12 hours when the
-scraper is running. Install required packages and start the scraper with:
+`missile_hits.json` and automatically updated once per day. On the first
+run it downloads all available history starting 12 June 2024; subsequent runs
+only fetch new alerts. Install required packages and start the scraper with:
 
 ```bash
 pip install -r requirements.txt
